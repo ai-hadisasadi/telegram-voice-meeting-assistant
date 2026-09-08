@@ -21,7 +21,7 @@ Instead of manually listening to a recording and writing meeting notes, the work
 ## 🏗️ Architecture
 
 **Telegram → Audio Processing → Groq Whisper → AI Agent → Structured Output → Telegram**
-
+![Workflow Architecture](workflow-architecture2.png)
 ### Workflow
 
 ```text
