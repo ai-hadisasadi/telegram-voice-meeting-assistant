@@ -1,0 +1,274 @@
+{
+  "name": "Meeting Assistant Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "تو یک دستیار هوشمند تحلیل جلسات سازمانی هستی.\n\nمتن جلسه را تحلیل کن و فقط اطلاعاتی را استخراج کن که واقعاً در متن وجود دارند.\n\nخروجی را با این ساختار تولید کن:\n\n1. خلاصه جلسه\n2. تصمیمات قطعی\n3. وظایف\n   - وظیفه\n   - مسئول\n   - مهلت\n4. موارد باز و ابهامات\n5. جلسه بعدی\n6. اطلاعات مهم مثل قیمت، تاریخ، درصد، نام افراد و سایر اعداد\n\nقوانین:\n- اطلاعات را حدس نزن.\n- اگر مسئول یک کار مشخص نیست، بنویس «نامشخص».\n- اگر مهلت مشخص نیست، بنویس «نامشخص».\n- تصمیم قطعی را از پیشنهاد یا احتمال جدا کن.\n- اگر متن شامل چند موضوع یا چند جلسه است، آن‌ها را از هم تفکیک کن.\n- اطلاعات متناقض را پنهان نکن و در بخش «موارد باز و ابهامات» گزارش کن.\n- پاسخ را دقیق و ساختاریافته به زبان فارسی بده."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -992,
+        -720
+      ],
+      "id": "c9b68629-062f-4125-8810-95c4e9526065",
+      "name": "AI Agent",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        -528
+      ],
+      "id": "9bfab343-b94f-400e-8d1c-ac5d9613a535",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "KfYXNjabeQJu86lW",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"summary\": {\n      \"type\": \"string\"\n    },\n    \"decisions\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"decision\": { \"type\": \"string\" },\n          \"details\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"tasks\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"task\": { \"type\": \"string\" },\n          \"owner\": { \"type\": \"string\" },\n          \"deadline\": { \"type\": \"string\" }\n        }\n      }\n    },\n    \"open_questions\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"next_meeting\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -848,
+        -528
+      ],
+      "id": "1b123757-af78-4f04-a4f2-3908ff978b0a",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": 
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -1136,
+        -720
+      ],
+      "id": "e3a96fcf-f13a-4761-a5d3-b9b6fe7b3ed0",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1632,
+        -720
+      ],
+      "id": "cdb8f215-9c74-4a17-9e64-c22ad07d3853",
+      "name": "Telegram Trigger",
+      "webhookId": "f68596b8-75ed-4297-bd56-b4e65772fd41",
+      "credentials": {
+        "telegramApi": {
+          "id": "8jYX7xCcX5oHmjqK",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1440,
+        -720
+      ],
+      "id": "dc50da9f-fa66-488f-b528-e0981e790322",
+      "name": "Get a file",
+      "webhookId": "0b7ae358-f43f-4c6b-bb06-4680ba81e5c9",
+      "credentials": {
+        "telegramApi": {
+          "id": "8jYX7xCcX5oHmjqK",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ JSON.stringify($json.output, null, 2) }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -688,
+        -720
+      ],
+      "id": "8c870b4a-045d-45ab-ba56-27b30d1e4822",
+      "name": "Send a text message",
+      "webhookId": "014df2d6-428d-4499-b5cb-ae6dadead25e",
+      "credentials": {
+        "telegramApi": {
+          "id": "8jYX7xCcX5oHmjqK",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\nif (item.binary && item.binary.data) {\n  item.binary.data.fileName = 'audio.ogg';\n  item.binary.data.mimeType = 'audio/ogg';\n  item.binary.data.fileExtension = 'ogg';\n}\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        -720
+      ],
+      "id": "8198cf7a-e734-4bc8-8fd9-7d1fb89d56ba",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7b481ed6-8526-4dde-bb8a-f4032375f5dc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13359e9c7208950c389823666753e119d79cfbbee97cacdfbb15ea7e753a2b3f"
+  },
+  "nodeGroups": [],
+  "id": "Gbu5IFLKb4JOxUMk",
+  "tags": []
+}
